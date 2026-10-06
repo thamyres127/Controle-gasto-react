@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Controle de Gastos</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;800&display=swap">
+<style>
+  :root { --fundo:#EAF0EE; --tinta:#12302B; --suave:#5B716C; --linha:#C9D6D2; --card:#FFFFFF; --destaque:#F2B134; --erro:#B3342B; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--fundo); color:var(--tinta); font-family:'Manrope',system-ui,sans-serif; }
+  main { max-width:560px; margin:0 auto; padding:20px 16px 48px; }
+  h1 { font-size:1.1rem; font-weight:600; margin:0 0 16px; color:var(--suave); }
+  .total { background:var(--tinta); color:#fff; border-radius:18px; padding:22px 20px; margin-bottom:16px; }
+  .total small { color:#B9CCC7; font-size:.9rem; }
+  .total strong { display:block; font-size:2.4rem; font-weight:800; margin-top:4px; color:var(--destaque); }
+  form, .lista { background:var(--card); border:1px solid var(--linha); border-radius:14px; padding:16px; margin-bottom:16px; }
+  label { display:block; font-size:.85rem; font-weight:600; margin-bottom:12px; }
+  input, select { width:100%; margin-top:4px; padding:12px; font:inherit; border:1px solid var(--linha); border-radius:10px; background:#fff; color:var(--tinta); }
+  input:focus-visible, select:focus-visible, button:focus-visible { outline:3px solid var(--destaque); outline-offset:1px; }
+  .duas { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .erro { color:var(--erro); font-size:.85rem; margin:0 0 10px; }
+  .add { width:100%; padding:13px; font:inherit; font-weight:800; border:0; border-radius:10px; background:var(--tinta); color:#fff; cursor:pointer; }
+  ul { list-style:none; margin:0; padding:0; }
+  li { display:flex; align-items:center; gap:12px; padding:12px 0; border-bottom:1px solid var(--linha); }
+  li:last-child { border-bottom:0; }
+  .info { flex:1; min-width:0; }
+  .info b { display:block; overflow-wrap:anywhere; }
+  .info span { font-size:.8rem; color:var(--suave); }
+  .valor { font-weight:800; white-space:nowrap; }
+  .excluir { border:1px solid var(--linha); background:#fff; color:var(--erro); border-radius:8px; padding:8px 10px; font:inherit; font-size:.8rem; cursor:pointer; }
+  .vazio { color:var(--suave); margin:0; text-align:center; padding:12px 0; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.24.7/babel.min.js"></script>
+
+<script type="text/babel">
+  const { useState, useEffect } = React;
+
+  const CATEGORIAS = ["Contas da casa", "Lazer", "Mercado", "Transporte"];
+  const CHAVE = "controle-de-gastos";
+
+  const dinheiro = (n) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+  const dataBR = (iso) => iso.split("-").reverse().join("/");
+
+  // Data de hoje no formato AAAA-MM-DD (o formato do campo de data)
+  const hoje = () => {
+    const d = new Date();
+    d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+    return d.toISOString().slice(0, 10);
+  };
+
+  // Lê os gastos salvos no navegador (se não der, começa vazio)
+  const carregar = () => {
+    try { return JSON.parse(localStorage.getItem(CHAVE)) || []; }
+    catch (e) { return []; }
+  };
+
+  function App() {
+    // Estado: tudo que muda na tela fica guardado aqui
+    const [gastos, setGastos] = useState(carregar);
+    const [descricao, setDescricao] = useState("");
+    const [valor, setValor] = useState("");
+    const [categoria, setCategoria] = useState(CATEGORIAS[0]);
+    const [data, setData] = useState(hoje());
+    const [erro, setErro] = useState("");
+
+    // Toda vez que a lista muda, salva no navegador
+    useEffect(() => {
+      try { localStorage.setItem(CHAVE, JSON.stringify(gastos)); } catch (e) {}
+    }, [gastos]);
+
+    const total = gastos.reduce((soma, g) => soma + g.valor, 0);
+
+    const adicionar = () => {
+      const numero = parseFloat(valor);
+      if (!descricao.trim()) return setErro("Escreva uma descrição para o gasto.");
+      if (!(numero > 0)) return setErro("Digite um valor maior que zero.");
+      if (!data) return setErro("Escolha a data do gasto.");
+      setGastos([{ id: Date.now(), descricao: descricao.trim(), valor: numero, categoria, data }, ...gastos]);
+      setDescricao(""); setValor(""); setErro("");
+    };
+
+    const excluir = (id) => setGastos(gastos.filter((g) => g.id !== id));
+
+    // Mais recentes primeiro
+    const ordenados = [...gastos].sort((a, b) => b.data.localeCompare(a.data) || b.id - a.id);
+
+    return (
+      <main>
+        <h1>Controle de Gastos</h1>
+
+        <section className="total">
+          <small>Total gasto</small>
+          <strong>{dinheiro(total)}</strong>
+        </section>
+
+        <form onSubmit={(e) => { e.preventDefault(); adicionar(); }}>
+          <label>Descrição
+            <input value={descricao} onChange={(e) => setDescricao(e.target.value)} placeholder="Ex.: Uber para o trabalho" />
+          </label>
+          <div className="duas">
+            <label>Valor (R$)
+              <input type="number" inputMode="decimal" step="0.01" min="0" value={valor} onChange={(e) => setValor(e.target.value)} placeholder="0,00" />
+            </label>
+            <label>Data
+              <input type="date" value={data} onChange={(e) => setData(e.target.value)} />
+            </label>
+          </div>
+          <label>Categoria
+            <select value={categoria} onChange={(e) => setCategoria(e.target.value)}>
+              {CATEGORIAS.map((c) => <option key={c}>{c}</option>)}
+            </select>
+          </label>
+          {erro && <p className="erro" role="alert">{erro}</p>}
+          <button className="add" type="submit">Adicionar gasto</button>
+        </form>
+
+        <section className="lista">
+          {ordenados.length === 0 ? (
+            <p className="vazio">Nenhum gasto registrado ainda. Preencha o formulário acima para adicionar o primeiro.</p>
+          ) : (
+            <ul>
+              {ordenados.map((g) => (
+                <li key={g.id}>
+                  <div className="info">
+                    <b>{g.descricao}</b>
+                    <span>{g.categoria} · {dataBR(g.data)}</span>
+                  </div>
+                  <span className="valor">{dinheiro(g.valor)}</span>
+                  <button className="excluir" onClick={() => excluir(g.id)} aria-label={"Excluir " + g.descricao}>Excluir</button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      </main>
+    );
+  }
+
+  ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>
