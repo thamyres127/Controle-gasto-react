@@ -1,0 +1,13 @@
+-- Criando a tabela de gastos estruturada
+CREATE TABLE IF NOT EXISTS gastos (
+    id SERIAL PRIMARY KEY,
+    categoria VARCHAR(50) NOT NULL, -- lazer, transporte, feira, contas da casa
+    valor NUMERIC(10, 2) NOT NULL,
+    descricao TEXT,
+    data_gasto TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Query para testar a soma exata por categoria (ótimo para treinar seu SQL)
+SELECT categoria, SUM(valor) as total 
+FROM gastos 
+GROUP BY categoria;
