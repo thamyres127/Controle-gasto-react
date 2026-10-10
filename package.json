@@ -1,0 +1,15 @@
+{
+  "name": "controle-gasto-backend",
+  "version": "1.0.0",
+  "description": "API em Node.js para o sistema de Controle de Gastos",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.19.2"
+  },
+  "author": "Thamyres",
+  "license": "ISC"
+}
